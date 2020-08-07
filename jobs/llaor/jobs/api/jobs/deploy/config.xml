@@ -1,0 +1,79 @@
+<?xml version='1.1' encoding='UTF-8'?>
+<project>
+  <actions/>
+  <description></description>
+  <keepDependencies>false</keepDependencies>
+  <properties>
+    <com.coravy.hudson.plugins.github.GithubProjectProperty plugin="github@1.30.0">
+      <projectUrl>https://github.com/jordifierro/llaor-api/</projectUrl>
+      <displayName></displayName>
+    </com.coravy.hudson.plugins.github.GithubProjectProperty>
+  </properties>
+  <scm class="hudson.plugins.git.GitSCM" plugin="git@4.2.2">
+    <configVersion>2</configVersion>
+    <userRemoteConfigs>
+      <hudson.plugins.git.UserRemoteConfig>
+        <url>git@github.com:jordifierro/llaor-api.git</url>
+        <credentialsId>28582dcf-7296-4522-8717-edea4ea4861c</credentialsId>
+      </hudson.plugins.git.UserRemoteConfig>
+    </userRemoteConfigs>
+    <branches>
+      <hudson.plugins.git.BranchSpec>
+        <name>*/master</name>
+      </hudson.plugins.git.BranchSpec>
+    </branches>
+    <doGenerateSubmoduleConfigurations>false</doGenerateSubmoduleConfigurations>
+    <submoduleCfg class="list"/>
+    <extensions/>
+  </scm>
+  <canRoam>true</canRoam>
+  <disabled>false</disabled>
+  <blockBuildWhenDownstreamBuilding>false</blockBuildWhenDownstreamBuilding>
+  <blockBuildWhenUpstreamBuilding>false</blockBuildWhenUpstreamBuilding>
+  <triggers/>
+  <concurrentBuild>false</concurrentBuild>
+  <builders>
+    <hudson.tasks.Shell>
+      <command>cat $llaor_env_list &gt; env.list
+
+sudo docker build -t llaor/api .
+
+sudo docker update --restart=no llaor-nginx-01
+sudo docker stop llaor-nginx-01
+sudo docker rm llaor-nginx-01
+sudo docker update --restart=no llaor-api-01
+sudo docker stop llaor-api-01
+sudo docker rm llaor-api-01
+sudo docker run -d --restart=always --env-file env.list --net llaor-net -v llaor-statics-01:/code/llaor/staticfiles --name llaor-api-01 -t llaor/api
+sudo docker run --name llaor-nginx-01 -v llaor-statics-01:/usr/share/nginx/html/static:ro -v /etc/nginx/sites-available/api.llaor.com/nginx-01.conf:/etc/nginx/nginx.conf:ro -p 127.0.0.2:80:80 --net llaor-net --restart=always -d nginx
+
+response=000
+while [ $response -gt 499 -o &quot;${response}&quot; = 000 ]
+do
+    sleep 1
+    response=$(curl --write-out %{http_code} --silent --output /dev/null 127.0.0.2)
+    echo $response
+done
+
+sudo docker update --restart=no llaor-nginx-02
+sudo docker stop llaor-nginx-02
+sudo docker rm llaor-nginx-02
+sudo docker update --restart=no llaor-api-02
+sudo docker stop llaor-api-02
+sudo docker rm llaor-api-02
+sudo docker run -d --restart=always --env-file env.list --net llaor-net -v llaor-statics-02:/code/llaor/staticfiles --name llaor-api-02 -t llaor/api
+sudo docker run --name llaor-nginx-02 -v llaor-statics-02:/usr/share/nginx/html/static:ro -v /etc/nginx/sites-available/api.llaor.com/nginx-02.conf:/etc/nginx/nginx.conf:ro -p 127.0.0.3:80:80 --net llaor-net --restart=always -d nginx</command>
+    </hudson.tasks.Shell>
+  </builders>
+  <publishers/>
+  <buildWrappers>
+    <org.jenkinsci.plugins.credentialsbinding.impl.SecretBuildWrapper plugin="credentials-binding@1.23">
+      <bindings>
+        <org.jenkinsci.plugins.credentialsbinding.impl.FileBinding>
+          <credentialsId>llaor_env_list</credentialsId>
+          <variable>llaor_env_list</variable>
+        </org.jenkinsci.plugins.credentialsbinding.impl.FileBinding>
+      </bindings>
+    </org.jenkinsci.plugins.credentialsbinding.impl.SecretBuildWrapper>
+  </buildWrappers>
+</project>
